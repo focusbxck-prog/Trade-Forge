@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#172033" />
+  <title>Tax & Payout Calculator</title>
+  <script>
+    document.documentElement.dataset.theme = localStorage.getItem("trade-journal-theme") || "light";
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-2: #eef2f7;
+      --surface-3: #fbfcfe;
+      --field: #ffffff;
+      --text: #172033;
+      --muted: #687386;
+      --line: #dbe2ec;
+      --accent: #1677ff;
+      --accent-2: #13a16f;
+      --danger: #e34850;
+      --sidebar: #172033;
+      --sidebar-text: #f8fbff;
+      --sidebar-muted: #aab6c7;
+      --nav-hover: rgba(255,255,255,0.1);
+      --shadow: 0 12px 32px rgba(22, 32, 51, 0.08);
+      --radius: 8px;
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0e121a;
+      --surface: #171d28;
+      --surface-2: #222b39;
+      --surface-3: #121822;
+      --field: #101620;
+      --text: #eef4ff;
+      --muted: #9ba8bc;
+      --line: #2e394b;
+      --accent: #5b9dff;
+      --accent-2: #31c48d;
+      --danger: #ff6872;
+      --sidebar: #0b1018;
+      --sidebar-text: #f8fbff;
+      --sidebar-muted: #9ba8bc;
+      --nav-hover: rgba(255,255,255,0.09);
+      --shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+    }
+
+    .sidebar {
+      background: var(--sidebar);
+      color: var(--sidebar-text);
+      padding: 24px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 4px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #1677ff, #13a16f);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      color: white;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .brand span,
+    .sidebar-foot {
+      color: var(--sidebar-muted);
+      font-size: 12px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav a {
+      min-height: 42px;
+      border-radius: var(--radius);
+      color: #d7dfeb;
+      text-decoration: none;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+    }
+
+    .nav a.active,
+    .nav a:hover {
+      background: var(--nav-hover);
+      color: var(--sidebar-text);
+    }
+
+    .sidebar-foot {
+      margin-top: auto;
+      line-height: 1.5;
+      display: grid;
+      gap: 14px;
+    }
+
+    .logout-link {
+      min-height: 44px;
+      padding: 0 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      justify-self: start;
+      background: transparent;
+      color: var(--sidebar-muted);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .logout-link:hover {
+      color: var(--sidebar-text);
+    }
+
+    .logout-link svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      fill: none;
+    }
+
+    .main {
+      padding: 26px;
+      display: grid;
+      gap: 22px;
+      align-content: start;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .topbar h2 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.15;
+    }
+
+    .topbar p {
+      margin: 5px 0 0;
+      color: var(--muted);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      min-height: 40px;
+      border-radius: var(--radius);
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface-2);
+      color: var(--text);
+      white-space: nowrap;
+      text-decoration: none;
+    }
+
+    .panel,
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .panel-head h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .tax-grid {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 9px 10px;
+      background: var(--field);
+      color: var(--text);
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.14);
+    }
+
+    .helper-text {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .tax-results {
+      padding: 0 18px 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 16px;
+      min-height: 110px;
+      display: grid;
+      align-content: space-between;
+      gap: 12px;
+    }
+
+    .stat span,
+    .stat small,
+    .muted {
+      color: var(--muted);
+    }
+
+    .stat strong {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .profit {
+      color: var(--accent-2);
+      font-weight: 800;
+    }
+
+    .loss-text {
+      color: var(--danger);
+      font-weight: 800;
+    }
+
+    .payout-list {
+      padding: 0 18px 18px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .payout-item {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      display: grid;
+      grid-template-columns: minmax(110px, 0.8fr) minmax(120px, 1fr) minmax(120px, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      background: var(--surface-3);
+    }
+
+    .payout-item strong {
+      display: block;
+    }
+
+    .payout-item small {
+      color: var(--muted);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      min-height: 24px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 800;
+      background: var(--surface-2);
+      color: var(--muted);
+      width: fit-content;
+    }
+
+    .status-pill.received {
+      background: rgba(19, 161, 111, 0.14);
+      color: var(--accent-2);
+    }
+
+    .status-pill.requested {
+      background: rgba(22, 119, 255, 0.14);
+      color: var(--accent);
+    }
+
+    .empty {
+      padding: 18px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 1080px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+      }
+
+      .nav {
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        display: block;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        z-index: 8;
+        padding: 12px;
+        gap: 12px;
+      }
+
+      .brand span,
+      .sidebar-foot > span {
+        display: none;
+      }
+
+      .sidebar-foot {
+        margin-top: 0;
+      }
+
+      .logout-link {
+        min-height: 38px;
+        padding-left: 0;
+      }
+
+      .nav {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .nav a {
+        flex: 0 0 auto;
+      }
+
+      .main {
+        padding: 14px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .actions,
+      .tax-grid,
+      .tax-results,
+      .payout-item {
+        width: 100%;
+        grid-template-columns: 1fr;
+      }
+
+      input,
+      select {
+        min-height: 44px;
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">TJ</div>
+        <div>
+          <h1>Trade Forge</h1>
+          <span>Tax & payout</span>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Tax navigation">
+        <a href="index.html">Dashboard</a>
+        <a href="index.html#journal">New Trade</a>
+        <a href="tax.html" class="active">Tax/Payout</a>
+      </nav>
+
+      <div class="sidebar-foot">
+        <span>Data is stored in this browser with localStorage.</span>
+        <button class="logout-link" id="logoutBtn" type="button" aria-label="Log out">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14 8V5H5v14h9v-3" />
+            <path d="M10 12h10" />
+            <path d="m17 9 3 3-3 3" />
+          </svg>
+          <span>Log Out</span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2>Tax & Payout Calculator</h2>
+          <p>Estimate payout split, tax reserve, and net take-home from your journal P/L.</p>
+        </div>
+        <div class="actions">
+          <a class="btn" href="index.html">Back To Dashboard</a>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Calculator</h3>
+          <span class="muted">Estimate only</span>
+        </div>
+        <div class="tax-grid">
+          <label>Gross P/L
+            <input type="number" id="taxGrossPnl" step="0.01" placeholder="0.00" />
+          </label>
+          <label>Payout Split (%)
+            <input type="number" id="payoutSplit" step="0.1" placeholder="100" />
+          </label>
+          <label>Estimated Tax Rate (%)
+            <input type="number" id="taxRate" step="0.1" placeholder="25" />
+          </label>
+          <label>Fees / Commissions
+            <input type="number" id="payoutFees" step="0.01" placeholder="0.00" />
+          </label>
+          <button class="btn" id="useTotalPnlBtn" type="button">Use Total P/L</button>
+          <button class="btn" id="resetTaxBtn" type="button">Reset</button>
+          <div class="helper-text">Use your own rate. This is not tax advice.</div>
+        </div>
+        <div class="tax-results">
+          <div class="stat">
+            <span>Payout Before Tax</span>
+            <strong id="payoutBeforeTax">$0.00</strong>
+            <small>After split and fees</small>
+          </div>
+          <div class="stat">
+            <span>Tax Reserve</span>
+            <strong id="taxReserve">$0.00</strong>
+            <small>Estimated from payout</small>
+          </div>
+          <div class="stat">
+            <span>Net Payout</span>
+            <strong id="netPayout">$0.00</strong>
+            <small>After estimated tax</small>
+          </div>
+          <div class="stat">
+            <span>Split Kept Back</span>
+            <strong id="splitKeptBack">$0.00</strong>
+            <small>Unpaid split portion</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Consistency Calculator</h3>
+          <span class="muted">Best day rule</span>
+        </div>
+        <div class="tax-grid">
+          <label>Profit Target
+            <input type="number" id="consistencyTarget" step="0.01" placeholder="5000" />
+          </label>
+          <label>Max Best Day (%)
+            <input type="number" id="consistencyLimit" step="0.1" placeholder="30" />
+          </label>
+          <button class="btn" id="usePnlConsistencyBtn" type="button">Use Total P/L</button>
+          <button class="btn" id="clearConsistencyBtn" type="button">Clear</button>
+          <div class="helper-text">Checks whether your largest winning day is under the max percentage of total profit.</div>
+        </div>
+        <div class="tax-results">
+          <div class="stat">
+            <span>Total Profit</span>
+            <strong id="consistencyTotal">$0.00</strong>
+            <small id="consistencyTargetText">Target: $0.00</small>
+          </div>
+          <div class="stat">
+            <span>Best Day</span>
+            <strong id="consistencyBestDay">$0.00</strong>
+            <small>Largest winning day</small>
+          </div>
+          <div class="stat">
+            <span>Consistency</span>
+            <strong id="consistencyPercent">0%</strong>
+            <small id="consistencyLimitText">Max: 30%</small>
+          </div>
+          <div class="stat">
+            <span>Status</span>
+            <strong id="consistencyStatus">$0.00</strong>
+            <small id="consistencyHelp">Save trades to calculate.</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Payout Tracker</h3>
+          <span class="muted" id="payoutCount">0 payouts</span>
+        </div>
+        <div class="tax-grid">
+          <label>Date
+            <input type="date" id="payoutDate" />
+          </label>
+          <label>Amount
+            <input type="number" id="payoutAmount" step="0.01" placeholder="0.00" />
+          </label>
+          <label>Status
+            <select id="payoutStatus">
+              <option>Requested</option>
+              <option>Received</option>
+              <option>Pending</option>
+            </select>
+          </label>
+          <button class="btn" id="addPayoutBtn" type="button">Add Payout</button>
+          <button class="btn" id="clearPayoutFormBtn" type="button">Clear Form</button>
+          <div class="helper-text">Track requests and received payouts separately from your trade history.</div>
+        </div>
+        <div class="tax-results">
+          <div class="stat">
+            <span>Requested</span>
+            <strong id="payoutRequested">$0.00</strong>
+            <small>Total requested</small>
+          </div>
+          <div class="stat">
+            <span>Received</span>
+            <strong id="payoutReceived">$0.00</strong>
+            <small>Paid out</small>
+          </div>
+          <div class="stat">
+            <span>Pending</span>
+            <strong id="payoutPending">$0.00</strong>
+            <small>Requested minus received</small>
+          </div>
+          <div class="stat">
+            <span>Average</span>
+            <strong id="payoutAverage">$0.00</strong>
+            <small>Per payout entry</small>
+          </div>
+        </div>
+        <div class="payout-list" id="payoutList"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "trade-journal-dashboard-v1";
+    const AUTH_KEY = "ryze-journal-session";
+    const TAX_KEY = "trade-journal-tax-payout";
+    const CONSISTENCY_KEY = "trade-journal-consistency";
+    const PAYOUT_KEY = "trade-journal-payouts";
+    const today = new Date().toISOString().slice(0, 10);
+    let trades = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    let taxSettings = JSON.parse(localStorage.getItem(TAX_KEY) || '{"grossPnl":0,"payoutSplit":100,"taxRate":25,"fees":0}');
+    let consistencySettings = JSON.parse(localStorage.getItem(CONSISTENCY_KEY) || '{"target":0,"limit":30}');
+    let payouts = JSON.parse(localStorage.getItem(PAYOUT_KEY) || "[]");
+
+    const $ = (id) => document.getElementById(id);
+    const money = (value) => Number(value || 0).toLocaleString(undefined, {
+      style: "currency",
+      currency: "USD"
+    });
+
+    function totalPnlValue() {
+      return trades.reduce((sum, trade) => sum + Number(trade.pnl || 0), 0);
+    }
+
+    function logout() {
+      localStorage.removeItem(AUTH_KEY);
+      window.location.href = "login.html";
+    }
+
+    function applyTaxSettings() {
+      $("taxGrossPnl").value = taxSettings.grossPnl ?? "";
+      $("payoutSplit").value = taxSettings.payoutSplit ?? 100;
+      $("taxRate").value = taxSettings.taxRate ?? "";
+      $("payoutFees").value = taxSettings.fees ?? "";
+      renderTaxCalculator();
+    }
+
+    function applyConsistencySettings() {
+      $("consistencyTarget").value = consistencySettings.target || "";
+      $("consistencyLimit").value = consistencySettings.limit ?? 30;
+      renderConsistencyCalculator();
+    }
+
+    function updateTaxSettingsFromInputs() {
+      taxSettings = {
+        grossPnl: Number($("taxGrossPnl").value || 0),
+        payoutSplit: Number($("payoutSplit").value || 0),
+        taxRate: Number($("taxRate").value || 0),
+        fees: Number($("payoutFees").value || 0)
+      };
+      localStorage.setItem(TAX_KEY, JSON.stringify(taxSettings));
+      renderTaxCalculator();
+    }
+
+    function renderTaxCalculator() {
+      const gross = Number(taxSettings.grossPnl || 0);
+      const splitPercent = Number(taxSettings.payoutSplit || 0) / 100;
+      const taxPercent = Number(taxSettings.taxRate || 0) / 100;
+      const fees = Number(taxSettings.fees || 0);
+      const splitPayout = gross * splitPercent;
+      const payoutBeforeTax = splitPayout - fees;
+      const taxReserve = Math.max(0, payoutBeforeTax) * taxPercent;
+      const netPayout = payoutBeforeTax - taxReserve;
+      const keptBack = gross - splitPayout;
+
+      $("payoutBeforeTax").textContent = money(payoutBeforeTax);
+      $("taxReserve").textContent = money(taxReserve);
+      $("netPayout").textContent = money(netPayout);
+      $("splitKeptBack").textContent = money(keptBack);
+      $("netPayout").className = netPayout < 0 ? "loss-text" : "profit";
+    }
+
+    function dailyPnlTotals() {
+      return Object.values(trades.reduce((map, trade) => {
+        map[trade.date] = (map[trade.date] || 0) + Number(trade.pnl || 0);
+        return map;
+      }, {}));
+    }
+
+    function renderConsistencyCalculator() {
+      const totalProfit = totalPnlValue();
+      const target = Number(consistencySettings.target || 0);
+      const limit = Number(consistencySettings.limit || 30);
+      const bestDay = Math.max(0, ...dailyPnlTotals());
+      const percent = totalProfit > 0 ? (bestDay / totalProfit) * 100 : 0;
+      const neededTotal = limit > 0 ? bestDay / (limit / 100) : 0;
+      const neededMore = Math.max(0, neededTotal - totalProfit);
+      const passes = totalProfit > 0 && percent <= limit;
+
+      $("consistencyTotal").textContent = money(totalProfit);
+      $("consistencyTotal").className = totalProfit < 0 ? "loss-text" : "profit";
+      $("consistencyTargetText").textContent = `Target: ${money(target)}`;
+      $("consistencyBestDay").textContent = money(bestDay);
+      $("consistencyPercent").textContent = `${percent.toFixed(1)}%`;
+      $("consistencyPercent").className = passes ? "profit" : "loss-text";
+      $("consistencyLimitText").textContent = `Max: ${limit}%`;
+      $("consistencyStatus").textContent = passes ? "Passed" : money(neededMore);
+      $("consistencyStatus").className = passes ? "profit" : "loss-text";
+      $("consistencyHelp").textContent = passes
+        ? "Best day is within your rule."
+        : totalProfit > 0
+          ? "More profit needed to pass the rule."
+          : "Save profitable trades to calculate.";
+    }
+
+    function updateConsistencySettings() {
+      consistencySettings = {
+        target: Number($("consistencyTarget").value || 0),
+        limit: Number($("consistencyLimit").value || 30)
+      };
+      localStorage.setItem(CONSISTENCY_KEY, JSON.stringify(consistencySettings));
+      renderConsistencyCalculator();
+    }
+
+    function resetPayoutForm() {
+      $("payoutDate").value = today;
+      $("payoutAmount").value = "";
+      $("payoutStatus").value = "Requested";
+    }
+
+    function savePayouts() {
+      localStorage.setItem(PAYOUT_KEY, JSON.stringify(payouts));
+    }
+
+    function addPayout() {
+      const amount = Number($("payoutAmount").value || 0);
+      if (!amount) return;
+      payouts.unshift({
+        id: crypto.randomUUID(),
+        date: $("payoutDate").value || today,
+        amount,
+        status: $("payoutStatus").value,
+        updatedAt: new Date().toISOString()
+      });
+      savePayouts();
+      resetPayoutForm();
+      renderPayoutTracker();
+    }
+
+    function renderPayoutTracker() {
+      const requested = payouts.reduce((sum, payout) => sum + Number(payout.amount || 0), 0);
+      const received = payouts
+        .filter((payout) => payout.status === "Received")
+        .reduce((sum, payout) => sum + Number(payout.amount || 0), 0);
+      const pending = payouts
+        .filter((payout) => payout.status !== "Received")
+        .reduce((sum, payout) => sum + Number(payout.amount || 0), 0);
+      const average = payouts.length ? requested / payouts.length : 0;
+
+      $("payoutCount").textContent = `${payouts.length} payout${payouts.length === 1 ? "" : "s"}`;
+      $("payoutRequested").textContent = money(requested);
+      $("payoutReceived").textContent = money(received);
+      $("payoutPending").textContent = money(pending);
+      $("payoutAverage").textContent = money(average);
+
+      if (!payouts.length) {
+        $("payoutList").innerHTML = `<div class="empty">No payouts tracked yet.</div>`;
+        return;
+      }
+
+      $("payoutList").innerHTML = payouts.map((payout) => {
+        const statusClass = payout.status.toLowerCase();
+        const receivedButton = payout.status === "Received"
+          ? ""
+          : `<button class="btn" type="button" data-payout-received="${payout.id}">Mark Received</button>`;
+        return `
+          <div class="payout-item">
+            <div>
+              <strong>${payout.date}</strong>
+              <small>Payout entry</small>
+            </div>
+            <strong>${money(payout.amount)}</strong>
+            <span class="status-pill ${statusClass}">${payout.status}</span>
+            <div class="actions">
+              ${receivedButton}
+              <button class="btn" type="button" data-payout-delete="${payout.id}">Delete</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    ["taxGrossPnl", "payoutSplit", "taxRate", "payoutFees"].forEach((id) => {
+      $(id).addEventListener("input", updateTaxSettingsFromInputs);
+    });
+
+    ["consistencyTarget", "consistencyLimit"].forEach((id) => {
+      $(id).addEventListener("input", updateConsistencySettings);
+    });
+
+    $("useTotalPnlBtn").addEventListener("click", () => {
+      $("taxGrossPnl").value = totalPnlValue().toFixed(2);
+      updateTaxSettingsFromInputs();
+    });
+
+    $("resetTaxBtn").addEventListener("click", () => {
+      taxSettings = { grossPnl: 0, payoutSplit: 100, taxRate: 25, fees: 0 };
+      localStorage.setItem(TAX_KEY, JSON.stringify(taxSettings));
+      applyTaxSettings();
+    });
+
+    $("usePnlConsistencyBtn").addEventListener("click", () => {
+      $("consistencyTarget").value = totalPnlValue().toFixed(2);
+      updateConsistencySettings();
+    });
+
+    $("clearConsistencyBtn").addEventListener("click", () => {
+      consistencySettings = { target: 0, limit: 30 };
+      localStorage.setItem(CONSISTENCY_KEY, JSON.stringify(consistencySettings));
+      applyConsistencySettings();
+    });
+
+    $("addPayoutBtn").addEventListener("click", addPayout);
+    $("clearPayoutFormBtn").addEventListener("click", resetPayoutForm);
+    $("payoutList").addEventListener("click", (event) => {
+      const receivedId = event.target.dataset.payoutReceived;
+      const deleteId = event.target.dataset.payoutDelete;
+
+      if (receivedId) {
+        payouts = payouts.map((payout) => (
+          payout.id === receivedId ? { ...payout, status: "Received", updatedAt: new Date().toISOString() } : payout
+        ));
+        savePayouts();
+        renderPayoutTracker();
+      }
+
+      if (deleteId && confirm("Delete this payout entry?")) {
+        payouts = payouts.filter((payout) => payout.id !== deleteId);
+        savePayouts();
+        renderPayoutTracker();
+      }
+    });
+
+    $("logoutBtn").addEventListener("click", logout);
+
+    applyTaxSettings();
+    applyConsistencySettings();
+    resetPayoutForm();
+    renderPayoutTracker();
+  </script>
+</body>
+</html>

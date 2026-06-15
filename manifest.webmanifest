@@ -1,0 +1,16 @@
+{
+  "name": "Trade Forge Dashboard",
+  "short_name": "Trade Forge",
+  "start_url": "./login.html",
+  "display": "standalone",
+  "background_color": "#0e121a",
+  "theme_color": "#172033",
+  "icons": [
+    {
+      "src": "assets/app-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
