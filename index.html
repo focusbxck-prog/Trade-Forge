@@ -12,6 +12,15 @@
   <title>Trading Journal Dashboard</title>
   <script>
     document.documentElement.dataset.theme = localStorage.getItem("trade-journal-theme") || "light";
+    const authParams = new URLSearchParams(window.location.search);
+    if (authParams.get("code")) {
+      localStorage.setItem("ryze-journal-session", JSON.stringify({
+        provider: "Discord",
+        name: "Discord",
+        signedInAt: new Date().toISOString()
+      }));
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
     if (!localStorage.getItem("ryze-journal-session")) {
       window.location.href = "login.html";
     }
